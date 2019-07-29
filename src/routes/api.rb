@@ -10,13 +10,14 @@ module Sinatra
     module Routing
       module API
       	API = "/api/v2"
+
         def self.registered(app)
-          # NOTE(pref): also now we require one more rubygem only for this cool looking thing :^)))))
           app.namespace API do
             get "/boards" do
               content_type 'application/json'
               JSON.dump(Config.get["boards"].select do |key, value| session[:username] or not value["hidden"] end.map do |key, value| key end)
             end
+
             get "/board/:board/detail" do |board|
               content_type 'application/json'
               if Config.get["boards"][board].nil? then
@@ -32,6 +33,7 @@ module Sinatra
               }
               return JSON.dump(payload)
             end
+
             get "/board/:board" do |board|
               content_type 'application/json'
               if Config.get["boards"][board].nil? then
@@ -51,6 +53,7 @@ module Sinatra
               end
               return JSON.dump(get_board(board, params, session, offset))
             end
+
             get "/thread/:id/metadata" do |id|
               content_type 'application/json'
               con = make_con()
@@ -61,6 +64,7 @@ module Sinatra
                 return JSON.dump(make_metadata(con, id, session))
               end
             end
+
             get "/thread/:id/replies" do |id|
               content_type 'application/json'
               con = make_con()
@@ -73,6 +77,7 @@ module Sinatra
                 return [404, JSON.dump({:error => 404, :message => "Thread not found."})]
               end
             end
+
             post "/search/?" do
               con = make_con()
               if not params[:page]
@@ -83,6 +88,7 @@ module Sinatra
               (ress, _) = get_search_results(params, con, offset, session)
               return JSON.dump(ress);
             end
+
             post "/advanced_search/?" do
               con = make_con()
               if not params[:page]
@@ -93,11 +99,13 @@ module Sinatra
               (ress, _) = get_search_results(params, con, offset, session, true)
               return JSON.dump(ress);
             end
+
             get "/replies/?" do
               con = make_con()
               ress = get_notifier_replies(params, con, session)
               return JSON.dump(ress);
             end
+
             get "/allowed_capcodes/?" do
               return JSON.dump(allowed_capcodes(session));
             end

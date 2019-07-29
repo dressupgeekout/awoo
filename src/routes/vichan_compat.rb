@@ -38,6 +38,7 @@ module Sinatra
               end
               JSON.dump(result)
             end
+
             app.get "/" + path + "/thread/:id.json" do |id|
               "todo"
             end

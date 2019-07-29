@@ -39,6 +39,7 @@ module ThreadGC
       puts e
     end
   end
+
   def self.prune!
     con = make_con()
     AwooUpdater.run(con)

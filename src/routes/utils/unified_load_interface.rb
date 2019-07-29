@@ -187,6 +187,7 @@ def get_archived_thread_replies(id)
   end
   obj
 end
+
 def make_archived_hash(res, board = nil)
   hash = Hash.new
   hash[:post_id] = res["post_id"]
@@ -196,6 +197,7 @@ def make_archived_hash(res, board = nil)
   hash[:board] = board ? board : res["board"]
   hash
 end
+
 def get_archived_board(con, board, offset)
   arr = []
   query(con, "SELECT post_id, title, number_of_posts FROM archived_posts WHERE board = ? ORDER BY post_id DESC LIMIT 20 OFFSET #{offset.to_s}", board).each do |res|
@@ -203,6 +205,7 @@ def get_archived_board(con, board, offset)
   end
   arr
 end
+
 def get_all_archived(con, offset)
   arr = []
   query(con, "SELECT post_id, title, board, number_of_posts FROM archived_posts ORDER BY post_id DESC LIMIT 20 OFFSET #{offset.to_s}").each do |res|
@@ -224,6 +227,7 @@ def posts_count(con, board)
   end
   return count
 end
+
 def archived_posts_count(con, board)
   count = 0
   if board == "all" then
@@ -237,9 +241,11 @@ def archived_posts_count(con, board)
   end
   return count
 end
+
 def make_hash(ip, post_id)
   return Digest::SHA256.hexdigest(ip + post_id.to_s)[0..5]
 end
+
 def get_popular(con, boards, session, offset)
   boards = get_viewable_boards(session, boards)
   boards = "(" + (boards.map do |b| "'" + con.escape(b) + "'" end).join(",") + ")"
@@ -249,6 +255,7 @@ def get_popular(con, boards, session, offset)
   end
   return results
 end
+
 def get_popular_count(con, boards, session)
   boards = get_viewable_boards(session, boards)
   boards = "(" + (boards.map do |b| "'" + con.escape(b) + "'" end).join(",") + ")"
@@ -258,12 +265,14 @@ def get_popular_count(con, boards, session)
   end
   return result
 end
+
 def get_viewable_boards(session, boards)
   if session[:moderates] then
     return boards
   end
   return boards.select do |b| not Config.get["boards"][b]["hidden"] end
 end
+
 def get_notifier_replies(params, con, session)
   con = make_con()
   begin
@@ -288,4 +297,3 @@ def get_notifier_replies(params, con, session)
   end
   return results
 end
-

@@ -25,6 +25,7 @@ module Sinatra
             boards << Config.get['boards'][key]['name']
           end
           script = nil;
+
           # Route for making a new OP
           app.post "/post" do
             con = make_con()
@@ -68,6 +69,7 @@ module Sinatra
             # if there was no "most-recently created post" then we probably have a bigger issue than a failed post
             return "Error? idk"
           end
+
           # Route for replying to an OP
           app.post "/reply" do
             con = make_con()
@@ -148,6 +150,7 @@ module Sinatra
               end
               erb :board, :locals => {:path => path, :config => Config.get, :con => con, :offset => offset, :banner => new_banner(path), :moderator => is_moderator(path, session), :session => session, :page => params[:page].to_i, :archive => false, :ress => ress, :page_url_generator => Default_page_generator, :request => request, :params => params, :count => posts_count(con, path), :popular => false}
             end
+
             app.get "/archive/" + path + "/?" do
               con = make_con()
               if not params[:page]
@@ -160,6 +163,7 @@ module Sinatra
               end
               erb :board, :locals => {:path => path, :config => Config.get, :con => con, :offset => offset, :banner => new_banner(path), :moderator => false, :session => Hash.new, :page => params[:page].to_i, :archive => true, :ress => get_archived_board(con, path, offset), :page_url_generator => Archive_page_generator, :request => request, :params => params, :count => archived_posts_count(con, path), :popular => false}
             end
+
             app.get "/" + path + "/thread/:id" do |id|
               con = make_con()
               if Config.get["boards"][path]["hidden"] and not session["username"] then
@@ -178,6 +182,7 @@ module Sinatra
                 return [404, erb(:notfound)]
               end
             end
+
             # Rules & Editing rules
             app.get "/" + path + "/rules/?" do
               if Config.get["boards"][path]["hidden"] and not session["username"] then
@@ -185,6 +190,7 @@ module Sinatra
               end
               erb :rules, :locals => {:rules => Config.get['boards'][path]['rules'], :moderator => is_moderator(path, session), :path => path, :banner => new_banner(path), :config => Config.get, :session => session}
             end
+
             app.post "/" + path + "/rules/edit/?" do
               if is_moderator(path, session) and has_permission(session, "edit_rules")
                 con = make_con();
@@ -363,18 +369,21 @@ module Sinatra
             end
             erb :mod_login, :locals => {:session => session, :config => Config.get}
           end
+
           # Moderator log in action, checks the username and password against the list of janitors and logs them in if it matches
           app.post "/mod" do
             username = params[:username]
             password = params[:password]
             return try_login(username, password, session, params)
           end
+
           # Logout action, logs the user out and redirects to the mod login page
           app.get "/logout" do
             session[:moderates] = nil
             session[:username] = nil
             redirect("/mod", 303);
           end
+
           # Gets all post by IP, and lets you ban it
           app.get "/ip/:addr" do |addr|
             if not session[:moderates] or not has_permission(session, "view_ips") then
@@ -415,6 +424,7 @@ module Sinatra
               return [403, "You have no janitor privileges or you don't have the permissions to perform this action."]
             end
           end
+
           app.post "/move/:post/?" do |post|
             con = make_con()
             # We allow the move if the person moderates the board the thread is being moved *from*
@@ -451,14 +461,17 @@ module Sinatra
             con = make_con()
             sticky_unsticky(post_id, true, con, session)
           end
+
           app.post "/sticky/:id/?" do |post_id|
             con = make_con()
             sticky_unsticky(post_id, params[:stickyness].to_i, con, session)
           end
+
           app.get "/unsticky/:id/?" do |post_id|
             con = make_con()
             sticky_unsticky(post_id, false, con, session)
           end
+
           app.get "/uncapcode/:post/?" do |post|
             if not session[:moderates] then
               return [403, "You have no janitor privileges or you don't have the permissions to perform this action."]
@@ -478,6 +491,7 @@ module Sinatra
               return [403, "You have no janitor privileges or you don't have the permissions to perform this action."]
             end
           end
+
           app.get "/capcode/:post/?" do |post|
             if not session[:moderates] then
               return [403, "You have no janitor privileges or you don't have the permissions to perform this action."]
@@ -523,6 +537,7 @@ module Sinatra
               return [403, "You have no janitor privileges or you don't have the permissions to perform this action."]
             end
           end
+
           app.post "/unban/:ip" do |ip|
             if is_moderator(params[:board], session) and has_permission(session, "ban") then
               con = make_con()
@@ -535,6 +550,7 @@ module Sinatra
               return [403, "You have no janitor privileges or you don't have the permissions to perform this action."]
             end
           end
+
           app.get "/ips" do
             if session[:moderates] and has_permission(session, "view_ips") then
               con = make_con();
@@ -543,18 +559,21 @@ module Sinatra
               return [403, "You have no janitor privileges or you don't have the permissions to perform this action."]
             end
           end
+
           app.get "/introspect/?" do
             if not has_permission(session, "introspect") then
               return [403, "You don't have permissions to perform this action."]
             end
             erb :introspect, :locals => {:config => Config.get}
           end
+
           app.get "/introspect/:mod/?" do |mod|
             if not has_permission(session, "introspect") then
               return [403, "You don't have permissions to perform this action."]
             end
             erb :introspect_selected, :locals => {:config => Config.get, :con => make_con(), :mod => mod}
           end
+
           # Posted to reset the password of a moderator
           app.post "/introspect_reset" do
             if not has_permission(session, "introspect") then
@@ -584,6 +603,7 @@ module Sinatra
             end
             return [200, "OK"]
           end
+
           # Edit the news line on the main page
           app.get "/edit_updates" do
             if not has_permission(session, "edit_index_news") then
@@ -592,6 +612,7 @@ module Sinatra
 
             erb :edit_updates, :locals => {:config => Config.get}
           end
+
           app.post "/edit_updates" do
             if not has_permission(session, "edit_index_news") then
               return [403, "You don't have permissions to perform this action."]
@@ -606,9 +627,11 @@ module Sinatra
             end
             return redirect("/")
           end
+
           app.get "/search/?" do
             erb :search, :locals => {:banner => new_banner("all")}
           end
+
           app.get "/search_results/?" do
             con = make_con()
             if not params[:page]
@@ -619,6 +642,7 @@ module Sinatra
             (ress, count) = get_search_results(params, con, offset, session)
             erb :board, :locals => {:path => params[:board_select], :config => Config.get, :con => con, :offset => offset, :banner => new_banner("all"), :moderator => is_moderator("all", session), :session => session, :page => params[:page].to_i, :archive => false, :ress => ress, :page_url_generator => Search_page_generator, :request => request, :params => params, :count => count, :popular => false}
           end
+
           app.get "/advanced_search_results/?" do
             con = make_con()
             if not params[:page]
@@ -629,6 +653,7 @@ module Sinatra
             (ress, count) = get_search_results(params, con, offset, session, true)
             erb :advanced_search_results, :locals => {:ress => ress, :count => count, :page_url_generator => Search_page_generator_advanced, :page => params[:page].to_i}
           end
+
           app.get "/popular/?" do
             con = make_con()
             if not params[:page]
@@ -649,6 +674,7 @@ module Sinatra
             count = get_popular_count(con, bds, session)
             erb :board, :locals => {:path => "all", :config => Config.get, :con => con, :offset => offset, :banner => new_banner("all"), :moderator => is_moderator("all", session), :session => session, :page => params[:page].to_i, :archive => false, :ress => ress, :page_url_generator => Popular_page_generator, :request => request, :params => params, :count => count, :popular => bds}
           end
+
           # thanks cloudflare
           app.get "/userscript_no_cache/?" do
             headers "Cache-Control" => "max-age=60"
@@ -660,12 +686,14 @@ module Sinatra
             end
             script
           end
+
           app.get "/pull/?" do
             if not session[:moderates] then
               return [404, erb(:notfound)]
             end
             system("git pull")
           end
+
           app.after do
             if (Random.rand * 100).round == 92 then
               start = Time.new

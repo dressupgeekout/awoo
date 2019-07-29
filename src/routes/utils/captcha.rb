@@ -5,6 +5,7 @@ Encoding.default_external = Encoding::UTF_8
 Wordlist = "/usr/share/dict/words"
 Words = File.read(Wordlist).split("\n").select! do |w| !w.include?("'") && w.length <= 5 && w.length >= 3 end.map! do |w| w.downcase end
 Memes = ["REOL", "danger/u/", "poi", "burg", "nano", "dorothy", "awoo", "bad touch", "brandtini", "bronson extract", "karmotrine"]
+
 def make_text
 	rr = ->() do
 		127 + Random.rand(127);
