@@ -1,1 +1,4 @@
+*.swo
+*.swp
+.DS_Store
 src/archive/*.json
