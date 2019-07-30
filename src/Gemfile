@@ -1,0 +1,8 @@
+source "https://rubygems.org"
+gem "mini_magick"
+gem "mysql2"
+gem "puma"
+gem "sequel"
+gem "sinatra"
+gem "sinatra-contrib"
+gem "sqlite3"
