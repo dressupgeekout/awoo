@@ -1,4 +1,9 @@
+*.sqlite3
 *.swo
 *.swp
 .DS_Store
+.ruby-version
+Gemfile.lock
+src/.bundle/**
 src/archive/*.json
+src/vendor/**
