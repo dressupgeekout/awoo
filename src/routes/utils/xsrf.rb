@@ -1,5 +1,6 @@
 XsrfToken = Struct.new(:token, :type, :board, :parent, :expiry, :text)
 XsrfTTL = 60 * 60
+
 class Xsrf
   def self.gensym
     Base64.encode64(Random.new.bytes(24)).strip

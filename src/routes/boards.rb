@@ -18,6 +18,7 @@ module Sinatra
           # Load up the config.json and read out some variables
           hostname = Config.get["hostname"]
           app.set :config, Config.get
+
           # Load all the boards out of the config file
           boards = []
           Config.get['boards'].each do |key, array|
@@ -29,10 +30,12 @@ module Sinatra
           # Route for making a new OP
           app.post "/post" do
             con = make_con()
+
             # OPs have a board, a title and a comment.
             board = params[:board]
             title = params[:title]
             content = params[:comment]
+
             # Also pull the IP address from the request and check if it looks like spam
             ip = get_ip(request, env);
             if looks_like_spam(con, ip, env) then
@@ -48,11 +51,13 @@ module Sinatra
             end
             title = apply_word_filters(board, title)
             content = apply_word_filters(board, content)
+
             # Check if the IP is banned
             banned = get_ban_info(ip, board, con)
             if banned then
               return erb :banned, :locals => {:info => banned, :config => Config.get}
             end
+
             # Insert the new post into the database
             if params[:capcode] and params[:capcode].length > 0 and allowed_capcodes(session).include? params[:capcode] and session[:username] then
               capcode = params[:capcode];
@@ -61,11 +66,13 @@ module Sinatra
             else
               query(con, "INSERT INTO posts (board, title, content, ip) VALUES (?, ?, ?, ?)", board, title, content, ip);
             end
+
             # Then get the ID of the just-inserted post and redirect the user to their new thread
             query(con, "SELECT LAST_INSERT_ID() AS id").each do |res|
               href = "/" + params[:board] + "/thread/" + res["id"].to_s + "?watch=true"
               redirect(href, 303);
             end
+
             # if there was no "most-recently created post" then we probably have a bigger issue than a failed post
             return "Error? idk"
           end
@@ -73,6 +80,7 @@ module Sinatra
           # Route for replying to an OP
           app.post "/reply" do
             con = make_con()
+
             # replies have a board, a comment and a parent (the post they're responding to)
             board = params[:board]
             content = params[:content]
@@ -87,11 +95,13 @@ module Sinatra
             if !session[:moderates] && !Xsrf.validate(board, parent, params[:xsrf], params[:captcha])
               return [400, "Captcha incorrect, post discarded"]
             end
+
             # Pull the IP address and check if it looks like spam
             ip = get_ip(request, env);
             if looks_like_spam(con, ip, env) then
               return [429, "Flood detected, post discarded"]
             end
+
             # Check if the IP is banned
             banned = get_ban_info(ip, board, con)
             if banned then
@@ -108,6 +118,7 @@ module Sinatra
             elsif Config.get["boards"][board]["hidden"] and not session[:username]
               return [403, "You have no janitor permissions"]
             end
+
             # Insert the new reply
             if params[:capcode] and params[:capcode].length > 0 and allowed_capcodes(session).include? params[:capcode] and session[:username] then
               capcode = params[:capcode];
@@ -116,6 +127,7 @@ module Sinatra
             else
               query(con, "INSERT INTO posts (board, parent, content, ip, title) VALUES (?, ?, ?, ?, NULL)", board, parent, content, ip)
             end
+
             # Mark the parent as bumped
             query(con, "UPDATE posts SET last_bumped = CURRENT_TIMESTAMP() WHERE post_id = ?", parent);
             # needed for dashchan extension
@@ -123,6 +135,7 @@ module Sinatra
             query(con, "SELECT LAST_INSERT_ID() AS id").each do |res|
               id = res["id"]
             end
+
             if params[:redirect] == "true"
               return redirect "/" + board + "/thread/" + parent.to_s
             else
@@ -194,11 +207,13 @@ module Sinatra
             app.post "/" + path + "/rules/edit/?" do
               if is_moderator(path, session) and has_permission(session, "edit_rules")
                 con = make_con();
+
                 # insert an IP note with the changes
                 content = "Updated rules for /" + path + "/\n"
                 content += wrap("old rules", Config.get['boards'][path]["rules"]);
                 content += wrap("new rules", params[:rules])
                 query(con, "INSERT INTO ip_notes (ip, content, actor) VALUES (?, ?, ?)", "_meta", content, session[:username])
+
                 # change the rules and save the changes
                 Config.get['boards'][path]['rules'] = params[:rules]
                 Config.rewrite!
@@ -224,6 +239,7 @@ module Sinatra
                 old_words = Config.get['boards'][path]['word-filter'];
                 Config.get['boards'][path]['word-filter'] = JSON.parse(params[:words])
                 Config.rewrite!
+
                 # save an IP note
                 content = "Updated word filters for /" + path + "/\n"
                 content += wrap("old word filters", JSON.pretty_generate(old_words));
@@ -297,16 +313,19 @@ module Sinatra
             query(con, "SELECT post_id, parent FROM posts WHERE ip IN ("+qmarks+")", *ips).each do |r|
               posts << [r["post_id"], r["parent"]]
             end
+
             # sort for the same reason as the delete_all case
             posts.sort_by do |r| r[1] == nil ? 1 : 0 end.each do |r|
               delete_post(session, con, r[0])
             end
+
             ips.each do |ip|
               # Insert the ban
               board = "all"
               date = "2030-01-01 00:00:00"
               reason = "Moderator ban and delete all"
               query(con, "INSERT INTO bans (ip, board, date_of_unban, reason) VALUES (?, ?, ?, ?)", ip, board, date, reason);
+
               # Insert the IP note
               content = "Banned from /" + board + "/ until " + date + " via ban-and-delete\n"
               content += wrap("reason", reason)
@@ -528,10 +547,12 @@ module Sinatra
               date = old_date[2] + "-" + old_date[0] + "-" + old_date[1] + " 00:00:00"
               reason = params[:reason]
               query(con, "INSERT INTO bans (ip, board, date_of_unban, reason) VALUES (?, ?, ?, ?)", ip, board, date, reason);
+
               # Insert the IP note
               content = "Banned from /" + board + "/ until " + params[:date] + "\n"
               content += wrap("reason", reason)
               query(con, "INSERT INTO ip_notes (ip, content, actor) VALUES (?, ?, ?)", ip, content, session[:username])
+
               return "OK"
             else
               return [403, "You have no janitor privileges or you don't have the permissions to perform this action."]
@@ -542,6 +563,7 @@ module Sinatra
             if is_moderator(params[:board], session) and has_permission(session, "ban") then
               con = make_con()
               board = params[:board]
+
               # delete the ban and insert the ip note
               query(con, "DELETE FROM bans WHERE ip = ? AND board = ?", ip, board)
               query(con, "INSERT INTO ip_notes (ip, content, actor) VALUES (?, ?, ?)", ip, "Unbanned from /" + board + "/", session[:username])
@@ -625,6 +647,7 @@ module Sinatra
             File.open("_watch", "w") do |f|
               f.write(Random.rand.hash.to_s)
             end
+
             return redirect("/")
           end
 
